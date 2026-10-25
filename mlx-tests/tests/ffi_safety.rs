@@ -45,6 +45,8 @@ macro_rules! assert_not_impl_any {
 }
 
 assert_not_impl_any!(GgufFile: Clone, Send, Sync);
+#[cfg(feature = "metal")]
+assert_not_impl_any!(fast::MetalKernel: Clone, Send, Sync);
 
 fn gguf_fixture() -> (tempfile::TempDir, std::path::PathBuf) {
     let directory = tempfile::tempdir().unwrap();
@@ -357,6 +359,84 @@ fn rms_norm_absence_handles_are_freed_after_each_call() {
     for _ in 0..200 {
         let input = Array::from_slice(&[1.0_f32, 2.0, 3.0, 4.0], &[1, 4]);
         fast::rms_norm(&input, None, 1e-5).unwrap().eval().unwrap();
+    }
+}
+
+#[cfg(feature = "metal")]
+#[test]
+fn metal_kernel_handles_are_released_on_every_path() {
+    for _ in 0..200 {
+        let output = [fast::MetalKernelOutput {
+            shape: vec![4],
+            dtype: Dtype::Float32,
+        }];
+        let input = Array::from_slice(&[1.0_f32, 2.0, 3.0, 4.0], &[4]);
+        assert!(fast::MetalKernel::new("none", &["a"], &[], "", Default::default()).is_err());
+
+        let kernel = fast::MetalKernel::new(
+            "ffi_scale",
+            &["a"],
+            &["out"],
+            "uint i = thread_position_in_grid.x; out[i] = a[i] * N;",
+            Default::default(),
+        )
+        .unwrap();
+        let options = fast::MetalKernelApplyOptions {
+            template_args: vec![("N".into(), fast::TemplateArg::Int(4))],
+            init_value: Some(0.0),
+            ..Default::default()
+        };
+        let result = with_stream(&Stream::gpu(), || {
+            // SAFETY: Four threads read valid f32 inputs and initialize distinct f32 outputs.
+            unsafe { kernel.apply(&[&input], &output, (4, 1, 1), (4, 1, 1), options.clone()) }
+        })
+        .unwrap();
+
+        let no_inputs: [&Array; 0] = [];
+        // SAFETY: The input count mismatch is rejected before any kernel can execute.
+        assert!(
+            unsafe { kernel.apply(&no_inputs, &output, (4, 1, 1), (4, 1, 1), options) }.is_err()
+        );
+        drop(kernel);
+        drop(input);
+        drop(output);
+        assert_eq!(
+            result[0].to_vec_exact::<f32>().unwrap(),
+            [4.0, 8.0, 12.0, 16.0]
+        );
+    }
+}
+
+#[cfg(feature = "metal")]
+#[test]
+fn metal_kernel_deferred_errors_release_handles() {
+    for _ in 0..20 {
+        let outputs = {
+            let kernel = fast::MetalKernel::new(
+                "ffi_bad_source",
+                &["a"],
+                &["out"],
+                "out[0] = a[0] +;",
+                Default::default(),
+            )
+            .unwrap();
+            let input = Array::from_slice(&[1.0_f32], &[1]);
+            // SAFETY: The malformed expression cannot compile or execute.
+            unsafe {
+                kernel.apply(
+                    &[&input],
+                    &[fast::MetalKernelOutput {
+                        shape: vec![1],
+                        dtype: Dtype::Float32,
+                    }],
+                    (1, 1, 1),
+                    (1, 1, 1),
+                    Default::default(),
+                )
+            }
+            .unwrap()
+        };
+        assert!(outputs[0].eval().is_err());
     }
 }
 

@@ -8,6 +8,13 @@ use crate::utils::IntoOption;
 use crate::{Array, Stream};
 use mlx_internal_macros::generate_macro;
 
+#[cfg(feature = "metal")]
+mod metal_kernel;
+#[cfg(feature = "metal")]
+pub use metal_kernel::{
+    MetalKernel, MetalKernelApplyOptions, MetalKernelOptions, MetalKernelOutput, TemplateArg,
+};
+
 /// Optimized implementation of `NN.RoPE`.
 #[allow(clippy::too_many_arguments)]
 pub fn rope<'a>(
