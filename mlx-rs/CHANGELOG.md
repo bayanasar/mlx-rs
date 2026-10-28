@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.33.0
+
+This release stays on MLX 0.32.2. It adds custom Metal kernels and a JIT Metal
+build, and fixes grouped convolutions and CPU-only builds.
+
+Breaking
+
+- Update `mlx-sys` to 0.7.0: mlx-c `a341b49` (v0.7.0), still MLX 0.32.2. Only code
+  that implements `mlx_io_vtable_` callbacks through `mlx-sys` needs changes.
 
 Added
 
@@ -8,7 +16,27 @@ Added
   counterpart of `mx.fast.metal_kernel`), with `TemplateArg`, `MetalKernelOptions`,
   `MetalKernelOutput` and `MetalKernelApplyOptions`. Requires the `metal` feature;
   `apply` is unsafe, defaults to the GPU outside execution scopes, and leaves input
-  layouts unchanged unless `ensure_row_contiguous` is enabled.
+  layouts unchanged unless `ensure_row_contiguous` is enabled (#389, thanks
+  @moonstripe).
+- The `metal-jit` feature builds MLX with `MLX_METAL_JIT`: the metallib shrinks from
+  about 136 MB to 1.5 MB, and kernels compile from source the first time they are
+  used (#391, thanks @anuejn).
+
+Deprecated
+
+- `assert_array_eq!` ignores dtype and uses one tolerance as both `rtol` and `atol`.
+  Compare with `Array::all_close` and check the dtype instead.
+
+Fixed
+
+- Grouped and depthwise `nn::Conv1d`/`nn::Conv2d` allocated `[C_out, ..., C_in]`
+  weights instead of `[C_out, ..., C_in / groups]` and failed on the first forward
+  pass. The builders now reject a `groups` that doesn't divide both channel counts
+  (#388, thanks @moonstripe).
+- Building with `default-features = false` still built and linked Metal. CPU-only
+  builds are CPU-only now.
+- `mlx_distributed_*` failed to link on macOS SDK 26.2 and later because `libjaccl`
+  wasn't linked.
 
 ## 0.32.0
 
