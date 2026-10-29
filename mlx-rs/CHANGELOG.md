@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Changed
+
+- Builds against MLX 0.32.4 (mlx-sys's mlx-c 0.8.0). `gather_qmm` passes no global scale.
+
 Breaking
 
 - `quantize`, `dequantize`, `quantized_matmul`, and `gather_qmm` take options
