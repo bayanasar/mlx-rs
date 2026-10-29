@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Update the pinned native tuple to mlx-c `a26f2d5` (v0.8.0) and MLX `0.32.4`. The C API adds
+  `mlx_fast_gated_delta_update`, `mlx_unique`, `mlx_matrix_transpose`,
+  `mlx_get_array_buffer_size`, `mlx_distributed_init_with_all_gather` and
+  `mlx_distributed_clear_backends`; `mlx_gather_qmm` takes a `global_scale` before
+  `sorted_indices`; and `mlx_distributed_group_rank` and `mlx_distributed_group_size` become
+  `mlx_distributed_group_get_rank` and `mlx_distributed_group_get_size`, which return a status
+  and write the value through a pointer
 - Generate the bindings with bindgen 0.73; the system opaque types `_malloc_zone_t`
   and `__sFILEX` no longer derive `Copy` and `Clone`
 

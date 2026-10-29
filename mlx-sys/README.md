@@ -3,7 +3,7 @@
 Rust bindings to the mlx-c API. Generated using bindgen.
 
 The crate version is independent of its native source tuple. This revision targets mlx-c
-`a341b4925024b88b2c593468f16e12f5e17315da`, whose CMake configuration pins MLX `v0.32.2`.
+`a26f2d584a14ec619ae8db9a09be03becd47598a`, whose CMake configuration pins MLX `v0.32.4`.
 
 ## Metal library location
 
