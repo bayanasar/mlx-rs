@@ -49,8 +49,13 @@ if let Ok(dir) = std::env::var("DEP_MLX_LIB_DIR") {
 }
 ```
 
-This workspace's own tests and examples take it through `RUSTFLAGS`:
-`RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib"`.
+This workspace's own tests and examples take it through `RUSTFLAGS`, and its doctests through
+`RUSTDOCFLAGS`, which Cargo does not fill from `RUSTFLAGS`:
+
+```sh
+export RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib"
+export RUSTDOCFLAGS="$RUSTFLAGS"
+```
 
 ## Build metadata for dependents
 
